@@ -45,7 +45,8 @@ for (i in 1:length(tmp)){
 }
 
 #Choose the required portion of the data
-data <- data[2:nrow(data), 3:(nrow(class)+3-1)]
+idx <- grep("Gene title", data[1, ])
+data <- data[2:nrow(data), 3:(idx[1]+2)]
 
 #Transpose, add column names and labels to the data
 data <- as.data.frame(t(data))
