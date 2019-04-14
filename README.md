@@ -13,4 +13,4 @@ Download and copy this code into the same folder
 Run the code in RStudio or R environment
 
 ### Step 3
-Four new CSV files will be created in the same folder containing data with and without features' names, features' names, chromosomes names
+Four new CSV files will be created in the same folder containing data with and without features' names, features' names, and chromosomes names
