@@ -1,5 +1,3 @@
-#NCBIdataPrep
-
 ## Use case
 For converting NCBI datasets downloaded from [GDSbrowser](https://www.ncbi.nlm.nih.gov/sites/GDSbrowser) to CSV files. This code extracts data with and without features' names, features' names, chromosomes names and store them into four CSV files, respectively.
 
