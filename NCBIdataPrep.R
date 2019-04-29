@@ -9,17 +9,32 @@
 
 rm(list=ls())
 #========================Libraries=========================
+list.of.packages <-
+  c("rstudioapi",
+    "data.table",
+    "missForest",
+    "dplyr")
+new.packages <-
+  list.of.packages[!(list.of.packages %in% installed.packages()[, "Package"])]
+if (length(new.packages))
+  install.packages(new.packages)
+
 library(data.table)
 library(dplyr)
 library(rstudioapi)
+library(missForest)
 
 #Getting current folder path
 path <- dirname(rstudioapi::getSourceEditorContext()$path)
 fileName <- dir(path, '*.soft')
 
 #Find the beginning of the data
-linesToSkip <- system(paste0('grep -nr !dataset_table_begin ', paste0(path, '/', fileName)), intern = T)
-linesToSkip <- as.numeric(strsplit(linesToSkip, ':')[[1]][1])
+startLine <- system(paste0('grep -nr !dataset_table_begin ', paste0(path, '/', fileName)), intern = T)
+startLine <- as.numeric(strsplit(startLine, ':')[[1]][1])
+
+#Find the ending of the data
+endLine <- system(paste0('grep -nr !dataset_table_end ', paste0(path, '/', fileName)), intern = T)
+endLine <- as.numeric(strsplit(endLine, ':')[[1]][1]) - 1
 
 #Extract classes and update labels
 nClasses <- system(paste0('grep -nr !subset_description ', paste0(path, '/', fileName)), intern = T)
@@ -31,7 +46,7 @@ for (i in 1:length(nClasses)){
 class <- as.data.frame(class)
 
 #Reading the data file and class in
-data <- fread(paste0(path, '/', fileName), sep = "\t", header = F, quote = "", skip = linesToSkip, data.table = F)
+data <- fread(paste0(path, '/', fileName), sep = "\t", header = F, quote = "", skip = startLine, nrows = (endLine - startLine), data.table = F, showProgress = T)
 
 #Extract features names
 cols <- paste(data[2:nrow(data), 1], data[2:nrow(data), 2], sep = "_")
@@ -52,6 +67,15 @@ data <- data[2:nrow(data), idx]
 data <- as.data.frame(t(data))
 colnames(data) <- cols
 data$class <- class$V2
+
+#Remove fully null columns
+data[data == "null"] <- NA
+nullFeatures <- sapply(data, function(x)all(is.na(x)))
+nullFeatures <- which(nullFeatures == T)
+data <- data[, -nullFeatures]
+
+#Impute the data
+data <- missForest(data)
 
 #Shuffle the data
 data <- data[sample(nrow(data)), ]
