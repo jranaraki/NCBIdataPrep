@@ -12,7 +12,7 @@ rm(list=ls())
 list.of.packages <-
   c("rstudioapi",
     "data.table",
-    "missForest",
+    "e1071",
     "dplyr")
 new.packages <-
   list.of.packages[!(list.of.packages %in% installed.packages()[, "Package"])]
@@ -22,7 +22,7 @@ if (length(new.packages))
 library(data.table)
 library(dplyr)
 library(rstudioapi)
-library(missForest)
+library(e1071)
 
 #Getting current folder path
 path <- dirname(rstudioapi::getSourceEditorContext()$path)
@@ -65,17 +65,17 @@ data <- data[2:nrow(data), idx]
 
 #Transpose, add column names and labels to the data
 data <- as.data.frame(t(data))
+data <- as.data.frame(apply(data, 2, function(x) as.numeric(as.character(x))))
 colnames(data) <- cols
 data$class <- class$V2
 
 #Remove fully null columns
-data[data == "null"] <- NA
 nullFeatures <- sapply(data, function(x)all(is.na(x)))
 nullFeatures <- which(nullFeatures == T)
 data <- data[, -nullFeatures]
 
 #Impute the data
-data <- missForest(data)
+data <- as.data.frame(e1071::impute(data[, -ncol(data)]))
 
 #Shuffle the data
 data <- data[sample(nrow(data)), ]
