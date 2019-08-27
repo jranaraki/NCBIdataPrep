@@ -1,8 +1,14 @@
 # Created by Javad Rahimipour Anaraki on 14/04/19
-# Ph.D. Candidate
+# Ph.D. in Computer Science
 # Department of Computer Science
 # Memorial University of Newfoundland
 # jra066 [AT] mun [DOT] ca | www.cs.mun.ca/~jra066
+
+# Modified by Majid Afshar on 23/08/19
+# Ph.D. candidate in Computer Science
+# Department of Computer Science
+# Memorial University of Newfoundland
+# mman23 [AT] mun [DOT] ca | www.cs.mun.ca/~mman23
 
 #   input: Data from NCBI data browser
 #  output: Four CSV files, data with and without features, features names and corresponding chromosomes
@@ -46,20 +52,10 @@ samples <-
 class <- NULL
 for (i in 1:length(nClasses)) {
   class <-
-    rbind(class, cbind(strsplit(strsplit(samples[i], '= ')[[1]][2], ',')[[1]], i))
+    rbind(class, cbind(strsplit(strsplit(samples[i], '= ')[[1]][2], ',')[[1]], i -
+                         1))
 }
 class <- as.data.frame(class)
-colnames(class) <- c("V1", "V2")
-unq <- as.data.frame(unique(class$V1))
-colnames(unq) <- "V1"
-if (nrow(class) != nrow(unq)) {
-  for (i in 1:nrow(unq)) {
-    tmp <- filter(class, V1 == unq[i, "V1"])
-    unq[i, "V2"] <- paste(tmp$V2, collapse = '')
-  }
-  class <- unq
-  unq <- NULL
-}
 
 #Reading the data file and class in
 data <-
@@ -77,6 +73,7 @@ data <-
 #Extract features names
 cols <-
   paste(data[2:nrow(data), 1], data[2:nrow(data), 2], sep = "_")
+genes <- data[2:nrow(data), 2]
 
 #Extract chromosomes data
 idx <- grep("Chromosome annotation", data[1, ])
@@ -85,7 +82,6 @@ chromosomes <- NULL
 for (i in 1:length(tmp)) {
   chromosomes[i] <- tmp[[i]][1]
 }
-tmp <- NULL
 
 #Choose the required portion of the data
 idx <- grep("GSM", data[1, ])
@@ -98,24 +94,67 @@ data <-
     as.numeric(as.character(x))))
 colnames(data) <- cols
 
+#Merge (average) repetitive genes
+cat("# of Genes:")
+print(length(genes))
+unqGenes <- unique(genes)
+cat("# of Uniqu Genes:")
+print(length(unqGenes))
+newData <- NULL
+for (i in 1:length(unqGenes)) {
+  sameGenes <- which(genes == unqGenes[i])
+  
+  if (length(sameGenes) > 1)
+    newCol <- rowMeans(data[, sameGenes])
+  else
+    newCol <- data[, sameGenes]
+  
+  newData <- cbind(newData, newCol)
+}
+
+data <- as.data.frame(newData)
+colnames(data) <- unqGenes
+
 #Remove fully null columns
 nullFeatures <- sapply(data, function(x)
   all(is.na(x)))
 nullFeatures <- which(nullFeatures == T)
-if (length(nullFeatures) > 0) {
+cat("# of Null Genes:")
+print(length(nullFeatures))
+if (length(nullFeatures) > 0)
   data <- data[, -nullFeatures]
-}
+
+#Remove columns with ####_at_ names
+unqGenes <- colnames(data)
+rmGenes <- regexpr("_at", unqGenes)
+idxrmGenes <- which(rmGenes > 0, arr.ind = T)
+cat("# of _at Genes:")
+print(length(idxrmGenes))
+if (length(idxrmGenes) > 0)
+  data <- data[, -idxrmGenes]
+
+#Remove control columns
+unqGenes <- colnames(data)
+rmGenes <- regexpr("--Control", unqGenes)
+idxrmGenes <- which(rmGenes > 0, arr.ind = T)
+cat("# of Control Genes:")
+print(length(idxrmGenes))
+if (length(idxrmGenes) > 0)
+  data <- data[, -idxrmGenes]
 
 #Impute the data
-if (length(which(is.na(data) == T)) > 0) {
-  data <- as.data.frame(impute(data))
-}
+data <- as.data.frame(e1071::impute(data))
+
+#Add class column to the data
+#Uncomment the next line if the number of classes should be less than the actual number of classes and equal to the number of rows in the data
+#class <- class[1:nrow(data),]
+data$class <- class$V2
 
 #Shuffle the data
-data$class <- class$V2
 data <- data[sample(nrow(data)), ]
 
 #Store data with and without features, features names and corresponding chromosomes
+paste0(path, '/', fileName)
 write.table(
   data,
   file = paste0(path, '/', strsplit(fileName, '\\.')[[1]][1], '.csv'),
@@ -124,7 +163,6 @@ write.table(
   row.names = F,
   col.names = T
 )
-
 write.table(
   data,
   file = paste0(path, '/', strsplit(fileName, '\\.')[[1]][1], '_NoFeature.csv'),
@@ -133,7 +171,6 @@ write.table(
   row.names = F,
   col.names = F
 )
-
 write.table(
   cols,
   file = paste0(path, '/', strsplit(fileName, '\\.')[[1]][1], '_Justfeatures.csv'),
@@ -142,7 +179,6 @@ write.table(
   row.names = F,
   col.names = F
 )
-
 write.table(
   chromosomes,
   file = paste0(path, '/', strsplit(fileName, '\\.')[[1]][1], '_JustChromosomes.csv'),
