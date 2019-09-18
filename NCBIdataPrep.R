@@ -52,8 +52,7 @@ samples <-
 class <- NULL
 for (i in 1:length(nClasses)) {
   class <-
-    rbind(class, cbind(strsplit(strsplit(samples[i], '= ')[[1]][2], ',')[[1]], i -
-                         1))
+    rbind(class, cbind(strsplit(strsplit(samples[i], '= ')[[1]][2], ',')[[1]], i - 1))
 }
 class <- as.data.frame(class)
 
@@ -76,7 +75,7 @@ cols <-
 genes <- data[2:nrow(data), 2]
 
 #Extract chromosomes data
-idx <- grep("Chromosome annotation", data[1, ])
+idx <- grep("Chromosome annotation", data[1,])
 tmp <- strsplit(data[2:nrow(data), idx], ",")
 chromosomes <- NULL
 for (i in 1:length(tmp)) {
@@ -84,7 +83,7 @@ for (i in 1:length(tmp)) {
 }
 
 #Choose the required portion of the data
-idx <- grep("GSM", data[1, ])
+idx <- grep("GSM", data[1,])
 data <- data[2:nrow(data), idx]
 
 #Transpose, add column names and labels to the data
@@ -95,11 +94,7 @@ data <-
 colnames(data) <- cols
 
 #Merge (average) repetitive genes
-cat("# of Genes:")
-print(length(genes))
 unqGenes <- unique(genes)
-cat("# of Uniqu Genes:")
-print(length(unqGenes))
 newData <- NULL
 for (i in 1:length(unqGenes)) {
   sameGenes <- which(genes == unqGenes[i])
@@ -119,39 +114,32 @@ colnames(data) <- unqGenes
 nullFeatures <- sapply(data, function(x)
   all(is.na(x)))
 nullFeatures <- which(nullFeatures == T)
-cat("# of Null Genes:")
-print(length(nullFeatures))
 if (length(nullFeatures) > 0)
-  data <- data[, -nullFeatures]
+  data <- data[,-nullFeatures]
 
 #Remove columns with ####_at_ names
 unqGenes <- colnames(data)
 rmGenes <- regexpr("_at", unqGenes)
 idxrmGenes <- which(rmGenes > 0, arr.ind = T)
-cat("# of _at Genes:")
-print(length(idxrmGenes))
 if (length(idxrmGenes) > 0)
-  data <- data[, -idxrmGenes]
+  data <- data[,-idxrmGenes]
 
 #Remove control columns
 unqGenes <- colnames(data)
 rmGenes <- regexpr("--Control", unqGenes)
 idxrmGenes <- which(rmGenes > 0, arr.ind = T)
-cat("# of Control Genes:")
-print(length(idxrmGenes))
+print(paste0("# of Control Genes:", length(idxrmGenes)))
 if (length(idxrmGenes) > 0)
-  data <- data[, -idxrmGenes]
+  data <- data[,-idxrmGenes]
 
 #Impute the data
 data <- as.data.frame(e1071::impute(data))
 
 #Add class column to the data
-#Uncomment the next line if the number of classes should be less than the actual number of classes and equal to the number of rows in the data
-#class <- class[1:nrow(data),]
-data$class <- class$V2
+class <- class[1:nrow(data), ]
 
 #Shuffle the data
-data <- data[sample(nrow(data)), ]
+data <- data[sample(nrow(data)),]
 
 #Store data with and without features, features names and corresponding chromosomes
 paste0(path, '/', fileName)
@@ -186,4 +174,16 @@ write.table(
   quote = F,
   row.names = F,
   col.names = F
+)
+
+#Print information related to the dataset
+cat(
+  "# of genes:",
+  length(genes),
+  "\n# of unique genes:",
+  length(unqGenes),
+  "\n# of null genes:",
+  length(nullFeatures),
+  "\n# of _at genes:",
+  length(idxrmGenes)
 )
