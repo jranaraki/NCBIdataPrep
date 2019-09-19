@@ -75,7 +75,7 @@ cols <-
 genes <- data[2:nrow(data), 2]
 
 #Extract chromosomes data
-idx <- grep("Chromosome annotation", data[1,])
+idx <- grep("Chromosome annotation", data[1, ])
 tmp <- strsplit(data[2:nrow(data), idx], ",")
 chromosomes <- NULL
 for (i in 1:length(tmp)) {
@@ -83,7 +83,7 @@ for (i in 1:length(tmp)) {
 }
 
 #Choose the required portion of the data
-idx <- grep("GSM", data[1,])
+idx <- grep("GSM", data[1, ])
 data <- data[2:nrow(data), idx]
 
 #Transpose, add column names and labels to the data
@@ -115,31 +115,32 @@ nullFeatures <- sapply(data, function(x)
   all(is.na(x)))
 nullFeatures <- which(nullFeatures == T)
 if (length(nullFeatures) > 0)
-  data <- data[,-nullFeatures]
+  data <- data[, -nullFeatures]
 
 #Remove columns with ####_at_ names
 unqGenes <- colnames(data)
 rmGenes <- regexpr("_at", unqGenes)
 idxrmGenes <- which(rmGenes > 0, arr.ind = T)
 if (length(idxrmGenes) > 0)
-  data <- data[,-idxrmGenes]
+  data <- data[, -idxrmGenes]
 
 #Remove control columns
 unqGenes <- colnames(data)
 rmGenes <- regexpr("--Control", unqGenes)
 idxrmGenes <- which(rmGenes > 0, arr.ind = T)
-print(paste0("# of Control Genes:", length(idxrmGenes)))
 if (length(idxrmGenes) > 0)
-  data <- data[,-idxrmGenes]
+  data <- data[, -idxrmGenes]
 
 #Impute the data
 data <- as.data.frame(e1071::impute(data))
 
 #Add class column to the data
-class <- class[1:nrow(data), ]
+class <- class[1:nrow(data),]
+data <- cbind(data, class[, 2])
+colnames(data)[ncol(data)] <- 'class'
 
 #Shuffle the data
-data <- data[sample(nrow(data)),]
+data <- data[sample(nrow(data)), ]
 
 #Store data with and without features, features names and corresponding chromosomes
 paste0(path, '/', fileName)
@@ -183,7 +184,5 @@ cat(
   "\n# of unique genes:",
   length(unqGenes),
   "\n# of null genes:",
-  length(nullFeatures),
-  "\n# of _at genes:",
-  length(idxrmGenes)
+  length(nullFeatures)
 )
