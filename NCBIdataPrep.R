@@ -81,6 +81,7 @@ chromosomes <- NULL
 for (i in 1:length(tmp)) {
   chromosomes[i] <- tmp[[i]][1]
 }
+chromGenes <- as.data.frame(cbind(chromosomes, genes))
 
 #Choose the required portion of the data
 idx <- grep("GSM", data[1, ])
@@ -94,13 +95,17 @@ data <-
 colnames(data) <- cols
 
 #Merge (average) repetitive genes
+idx <- NULL
 unqGenes <- unique(genes)
 newData <- NULL
 for (i in 1:length(unqGenes)) {
   sameGenes <- which(genes == unqGenes[i])
-  
-  if (length(sameGenes) > 1)
+  len <- length(sameGenes)
+
+  if (len > 1) {
     newCol <- rowMeans(data[, sameGenes])
+    idx <- c(idx, sameGenes[2:len])
+  }
   else
     newCol <- data[, sameGenes]
   
@@ -109,27 +114,34 @@ for (i in 1:length(unqGenes)) {
 
 data <- as.data.frame(newData)
 colnames(data) <- unqGenes
+chromGenes <- chromGenes[-idx, ]
 
 #Remove fully null columns
 nullFeatures <- sapply(data, function(x)
   all(is.na(x)))
 nullFeatures <- which(nullFeatures == T)
-if (length(nullFeatures) > 0)
+if (length(nullFeatures) > 0) {
   data <- data[, -nullFeatures]
+  chromGenes <- chromGenes[-nullFeatures, ]
+}
 
 #Remove columns with ####_at_ names
 unqGenes <- colnames(data)
 rmGenes <- regexpr("_at", unqGenes)
 idxrmGenes <- which(rmGenes > 0, arr.ind = T)
-if (length(idxrmGenes) > 0)
+if (length(idxrmGenes) > 0) {
   data <- data[, -idxrmGenes]
+  chromGenes <- chromGenes[-idxrmGenes, ]
+}
 
 #Remove control columns
 unqGenes <- colnames(data)
 rmGenes <- regexpr("--Control", unqGenes)
 idxrmGenes <- which(rmGenes > 0, arr.ind = T)
-if (length(idxrmGenes) > 0)
+if (length(idxrmGenes) > 0) {
   data <- data[, -idxrmGenes]
+  chromGenes <- chromGenes[-idxrmGenes, ]
+}
 
 #Impute the data
 data <- as.data.frame(e1071::impute(data))
@@ -141,6 +153,7 @@ colnames(data)[ncol(data)] <- 'class'
 
 #Shuffle the data
 data <- data[sample(nrow(data)), ]
+
 
 #Store data with and without features, features names and corresponding chromosomes
 paste0(path, '/', fileName)
@@ -161,7 +174,7 @@ write.table(
   col.names = F
 )
 write.table(
-  cols,
+  chromGenes$genes,
   file = paste0(path, '/', strsplit(fileName, '\\.')[[1]][1], '_Justfeatures.csv'),
   sep = ",",
   quote = F,
@@ -169,7 +182,7 @@ write.table(
   col.names = F
 )
 write.table(
-  chromosomes,
+  chromGenes$chromosomes,
   file = paste0(path, '/', strsplit(fileName, '\\.')[[1]][1], '_JustChromosomes.csv'),
   sep = ",",
   quote = F,
