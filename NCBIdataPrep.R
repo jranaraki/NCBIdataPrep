@@ -151,9 +151,13 @@ class <- class[1:nrow(data),]
 data <- cbind(data, class[, 2])
 colnames(data)[ncol(data)] <- 'class'
 
+#median-centered the samples in each class
+normData <- data %>%
+  group_by(class) %>%
+  mutate_at(., vars(-group_cols()), funs(. - median(.)))
+
 #Shuffle the data
 data <- data[sample(nrow(data)), ]
-
 
 #Store data with and without features, features names and corresponding chromosomes
 paste0(path, '/', fileName)
